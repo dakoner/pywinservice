@@ -18,27 +18,32 @@ logger = logging.getLogger(__name__)
 
 settings = Settings()
 
-def init_logging():
+def init_logging(debug=False):
     """ placeholder, dictConfig in Settings? """
-    import os.path
-    import sys
-    lh = logging.handlers.RotatingFileHandler(
-        os.path.join(os.path.dirname(sys.argv[0]), 'out.log'),
-        maxBytes=10<<20,
-        backupCount=1,
-    )
-    lh.setFormatter(
-        logging.Formatter('{'
+    root = logging.getLogger()
+    root.setLevel(logging.INFO)
+    
+    f = logging.Formatter('{'
             '"time":"%(asctime)s", '
             '"pid":%(process)d, '
             '"name":"%(name)s", '
             '"level":"%(levelname)s", '
             '"message":"%(message)s"'
         '}')
-    )
-    root = logging.getLogger()
-    root.addHandler(lh)
-    root.setLevel(logging.INFO)
+    
+    if debug:
+        h = logging.StreamHandler()
+        h.setFormatter(f)
+        root.addHandler(h)
+    else:
+        lh = logging.handlers.RotatingFileHandler(
+            os.path.join(os.path.dirname(sys.argv[0]), 'out.log'),
+            maxBytes=10<<20,
+            backupCount=1
+        )
+        lh.setFormatter(f)
+        root.addHandler(lh)
+    
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -61,6 +66,10 @@ app = FastAPI(lifespan=lifespan)
 def read_root():
     return {"Hello": "World"}
 
+@app.get("/shutdown")
+def shutdown():
+    server.should_exit=True
+    return {"Shutting": "Down"}
 
 @app.get("/buckets")
 def read_buckets():
@@ -69,10 +78,3 @@ def read_buckets():
     response = s3.list_buckets()
 
     return {"buckets": [bucket['Name'] for bucket in  response['Buckets']]}
-
-if __name__=="__main__":
-    try:
-        init_logging()
-        uvicorn.run(app, host='0.0.0.0', port=8000)
-    except KeyboardInterrupt:
-        print("Cancelled")
