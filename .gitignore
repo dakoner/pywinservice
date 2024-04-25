@@ -1,0 +1,7 @@
+build/
+dist/
+__pycache__/
+service.err.log
+service.out.log
+service.wrapper.log
+out.log

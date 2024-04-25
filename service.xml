@@ -1,0 +1,8 @@
+<service>
+  <name>pywinservice</name>
+  <description>pywinservice</description>
+  <id>pywinservice</id>
+  <executable>C:\Program Files\Python312\python.exe</executable>
+  <arguments>c:\Users\davidek\src\pywinservice\src\pywinservice\app.py</arguments>
+  <workingdirectory>c:\Users\davidek\src\pywinservice</workingdirectory>
+</service>

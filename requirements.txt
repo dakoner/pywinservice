@@ -1,0 +1,6 @@
+boto3
+fastapi[all]
+pyinstaller
+pywin32
+uvicorn[standard]
+watchdog
