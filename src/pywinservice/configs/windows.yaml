@@ -1,2 +1,4 @@
 ---
   watch_path: "c:\\Users\\davidek\\tmp"
+  debug: False
+  log_level: INFO

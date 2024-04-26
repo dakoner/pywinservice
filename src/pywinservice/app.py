@@ -9,21 +9,20 @@ from watchdog.events import LoggingEventHandler
 import uvicorn
 
 import boto3
-from config import Settings
+from config import load_config
 import yaml
 import os
 import sys
 
-logger = logging.getLogger(__name__)
+config = load_config()
 
-settings = Settings()
-
-def init_logging(debug=False):
-    """ placeholder, dictConfig in Settings? """
+def init_logging():
     root = logging.getLogger()
-    root.setLevel(logging.INFO)
-    
-    f = logging.Formatter('{'
+    m = logging.getLevelNamesMapping()
+    log_level_str = config.get("log_level", "INFO")
+    log_level = m.get(log_level_str, logging.INFO)
+    root.setLevel(log_level)
+    formatter = logging.Formatter('{'
             '"time":"%(asctime)s", '
             '"pid":%(process)d, '
             '"name":"%(name)s", '
@@ -31,25 +30,22 @@ def init_logging(debug=False):
             '"message":"%(message)s"'
         '}')
     
-    if debug:
-        h = logging.StreamHandler()
-        h.setFormatter(f)
-        root.addHandler(h)
+    if config["debug"] is True:
+        handler = logging.StreamHandler(sys.stdout)
     else:
-        lh = logging.handlers.RotatingFileHandler(
+        handler = logging.handlers.RotatingFileHandler(
             os.path.join(os.path.dirname(sys.argv[0]), 'out.log'),
             maxBytes=10<<20,
-            backupCount=1
+            backupCount=1,
         )
-        lh.setFormatter(f)
-        root.addHandler(lh)
-    
+
+    handler.setFormatter(
+        formatter
+    )
+    root.addHandler(handler)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    yaml_config = settings.yaml_config
-    yaml_config = os.path.join(os.path.dirname(sys.argv[0]), yaml_config)
-    config = yaml.safe_load(open(yaml_config))
     logging.info(f"start watching directory {config['watch_path']}")
     event_handler = LoggingEventHandler()
     observer = Observer()

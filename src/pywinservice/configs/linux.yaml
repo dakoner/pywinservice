@@ -1,2 +1,5 @@
 ---
   watch_path: "/home/davidek/tmp"
+  debug: False
+  log_level: INFO
+
