@@ -1,5 +1,5 @@
 import app
-from server import Server
+from server import ServerThread
 
 import logging
 import servicemanager
@@ -9,6 +9,7 @@ import time
 import win32event
 import win32service
 import win32serviceutil
+import uvicorn
 
 logger = logging.getLogger(__name__)
 
@@ -19,38 +20,30 @@ class Service(win32serviceutil.ServiceFramework):
 
     def __init__(self, args):
         app.init_logging()
-
+        
         super().__init__(args)
-
-        self.should_exit = False
 
     def SvcStop(self):
         logger.info('Stop requested')
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
 
-        self.should_exit = True
-
     def SvcDoRun(self):
         logger.info('Starting')
         self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
-
-        try:
-            self.should_exit = False
-            server = Server.run_in_thread()
-            self.ReportServiceStatus(win32service.SERVICE_RUNNING)
-            servicemanager.LogInfoMsg(f'{self._svc_name_} started')
-
-            while True:
-                #logger.info('Service is alive')
-                #servicemanager.LogInfoMsg('Service is alive')
-                time.sleep(1)
-                if self.should_exit:
-                    server.join()
-                    break
-        except:
-            logger.exception('Service failed')
-            servicemanager.LogErrorMsg('Check the app log')
-
+        config = uvicorn.Config(app.app, host="0.0.0.0", port=8000, log_config={
+            'version': 1,
+            'disable_existing_loggers': False,
+            'handlers': {},
+            'loggers': {},
+        })
+        self.server = ServerThread(config)
+        app.server = self.server.server
+        self.server.start()
+        self.ReportServiceStatus(win32service.SERVICE_RUNNING)
+        # causes segfault on windows
+        # servicemanager.LogInfoMsg(f'app started')
+        self.server.join()
+        
         self.ReportServiceStatus(win32service.SERVICE_STOPPED)
 
 if __name__ == '__main__':

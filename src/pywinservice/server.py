@@ -17,7 +17,7 @@ class ServerThread(threading.Thread):
         self.server.run()
 
 if __name__ == '__main__':
-    app.init_logging(debug=True)
+    app.init_logging()
     config = uvicorn.Config(app.app, host="0.0.0.0", port=8000, log_config={
         'version': 1,
         'disable_existing_loggers': False,
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     })
     
     server_thread = ServerThread(config)
-    server_thread.start()
     app.server = server_thread.server
+    server_thread.start()
 
     server_thread.join()
